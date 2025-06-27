@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Simulador de Conversas WhatsApp</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     body {
@@ -132,6 +133,7 @@
       border-radius: 8px;
       background: #f8f8f8;
       font-size: 13px;
+      cursor: pointer;
     }
     .poll-option.selected {
       background: #E7FFDB;
@@ -193,6 +195,7 @@ Botoes:
 Confirmar
 ✅ Sim ❌ Não" class="bg-gray-900 text-white rounded-md p-3 resize-none focus:outline-none focus:ring-2 focus:ring-white w-full"></textarea>
       <button id="generateButton" class="mt-4 w-full bg-white text-black font-semibold py-4 px-6 rounded-md hover:bg-gray-200 transition-all transform hover:scale-105 active:scale-95">Gerar Conversa</button>
+      <button id="exportButton" class="mt-2 w-full bg-green-600 text-white font-semibold py-4 px-6 rounded-md hover:bg-green-700 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" disabled>📱 Exportar Imagem</button>
     </section>
 
     <section class="phone-frame">
@@ -460,6 +463,8 @@ Confirmar
 
           setTimeout(() => {
             container.scrollTop = container.scrollHeight;
+            // Enable export button after chat is rendered
+            document.getElementById('exportButton').disabled = false;
           }, messages.length * 100);
         } catch (error) {
           console.error('Error rendering chat:', error);
@@ -496,8 +501,53 @@ Confirmar
       }
     }
 
-    // Add click handler
+    function exportImage() {
+      const phoneFrame = document.querySelector('.phone-frame');
+      const exportButton = document.getElementById('exportButton');
+      
+      exportButton.disabled = true;
+      exportButton.textContent = '📸 Capturando...';
+      
+      // Configure html2canvas options
+      const options = {
+        backgroundColor: null,
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: true,
+        width: phoneFrame.offsetWidth,
+        height: phoneFrame.offsetHeight,
+        x: 0,
+        y: 0
+      };
+      
+      html2canvas(phoneFrame, options).then(canvas => {
+        // Create download link
+        const link = document.createElement('a');
+        link.download = `whatsapp-conversa-${new Date().toISOString().slice(0,10)}.png`;
+        link.href = canvas.toDataURL('image/png');
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Reset button
+        exportButton.disabled = false;
+        exportButton.textContent = '📱 Exportar Imagem';
+      }).catch(error => {
+        console.error('Erro ao exportar imagem:', error);
+        alert('Erro ao exportar imagem. Tente novamente.');
+        
+        // Reset button
+        exportButton.disabled = false;
+        exportButton.textContent = '📱 Exportar Imagem';
+      });
+    }
+
+    // Add click handlers
     document.getElementById('generateButton').addEventListener('click', generateChat);
+    document.getElementById('exportButton').addEventListener('click', exportImage);
   </script>
 </body>
 </html>
