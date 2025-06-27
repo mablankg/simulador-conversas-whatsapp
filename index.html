@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulador de Conversas WhatsApp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #111;
+    }
+    .phone-frame {
+      position: relative;
+      width: 375px;
+      height: 750px;
+      background: white;
+      border-radius: 40px;
+      box-shadow: 0 0 0 11px #222, 0 0 0 13px #000, 0 0 30px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .phone-notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 30px;
+      background: #000;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      z-index: 10;
+    }
+    .phone-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #E5DDD5;
+      overflow: hidden;
+    }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 25px;
+      background: #075E54;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .whatsapp-header {
+      background: #075E54;
+      color: white;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      background: #ddd;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+    }
+    .chat-container {
+      height: calc(100% - 110px);
+      overflow-y: auto;
+      padding: 20px;
+      background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMjHxIGmVAAAAnklEQVQ4T+2TwQ2AIAxF2YVRWMVRWMVRGIVRGIXf0BjUNLFWDh7+5R/S9tE2gPkighpiqCGGGmKoIYYaYqghhtrT3H/dqQzxjPlPYzR9b7nfxpgKUw2FKfwMh7HQh5hK6M3QP5ljovH+Nu1H01f6lfvWdvL9PXX3CPqvYYajGPpXMYyl+hBTCb0ZxlJ9iKmE3gx9iKmE3n8NxRjzAh6R3SEI66XlAAAAAElFTkSuQmCC');
+    }
+    .message {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    .fade-in {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .message-bubble {
+      position: relative;
+      padding: 8px 12px;
+      border-radius: 7.5px;
+      max-width: 85%;
+      box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+    }
+    .message-bubble.received {
+      background: white;
+      border-top-left-radius: 0;
+    }
+    .message-bubble.sent {
+      background: #E7FFDB;
+      border-top-right-radius: 0;
+    }
+    .message-image {
+      max-width: 200px;
+      border-radius: 8px;
+      margin-bottom: 5px;
+    }
+    .message-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .message-button {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 15px;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .message-button:hover {
+      background: #f0f0f0;
+    }
+    .message-button.selected {
+      background: #25D366;
+      color: white;
+      border-color: #25D366;
+    }
+    .poll-option {
+      padding: 8px 12px;
+      margin: 4px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f8f8f8;
+      font-size: 13px;
+    }
+    .poll-option.selected {
+      background: #E7FFDB;
+      border-color: #25D366;
+    }
+    .read-receipt {
+      display: inline-block;
+      margin-left: 4px;
+      color: #4FC3F7;
+    }
+    .read-receipt::before {
+      content: '✓✓';
+      font-size: 0.8em;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 3px;
+    }
+    .back-button::before {
+      content: '←';
+      margin-right: 20px;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 gap-6">
+  <header class="text-center">
+    <h1 class="text-3xl font-semibold text-white mb-2">Simulador de Conversas WhatsApp</h1>
+    <p class="text-gray-400 max-w-xl">Cole o texto da conversa no campo abaixo e veja a simulação da conversa no estilo WhatsApp.</p>
+  </header>
+
+  <main class="flex flex-col md:flex-row gap-6 items-start">
+    <section class="w-96 flex flex-col">
+      <label for="inputText" class="mb-2 font-semibold text-white">Texto da Conversa</label>
+      <textarea id="inputText" rows="25" placeholder="Exemplo:
+Hora: 17:05
+Bateria: 100%
+Icone: https://exemplo.com/avatar.jpg
+Nome: João Silva
+
+11:00
+Concessionária: Seu carro foi recebido.
+
+✅ Aprovar ❌ Recusar
+
+Enquete: Como foi o atendimento?
+1 - PÉSSIMO
+2 - RUIM  
+3 - BOM
+4 - ÓTIMO
+
+Botoes:
+Confirmar
+✅ Sim ❌ Não" class="bg-gray-900 text-white rounded-md p-3 resize-none focus:outline-none focus:ring-2 focus:ring-white w-full"></textarea>
+      <button id="generateButton" class="mt-4 w-full bg-white text-black font-semibold py-4 px-6 rounded-md hover:bg-gray-200 transition-all transform hover:scale-105 active:scale-95">Gerar Conversa</button>
+    </section>
+
+    <section class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="status-bar">
+          <span class="time">19:18</span>
+          <span class="carrier">Vivo</span>
+          <span class="battery">85%</span>
+        </div>
+        
+        <div class="whatsapp-header">
+          <span class="back-button"></span>
+          <div class="avatar" id="contactAvatar"></div>
+          <div>
+            <div class="font-semibold" id="contactName">Nome do Contato</div>
+            <div class="text-sm opacity-80">online</div>
+          </div>
+        </div>
+
+        <div id="chatContainer" class="chat-container">
+          <div class="text-center text-gray-500 py-8">
+            As mensagens aparecerão aqui após colar o texto e clicar em "Gerar Conversa"
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let config = {
+      hora: '19:18',
+      bateria: '85%',
+      icone: '',
+      nome: 'Nome do Contato'
+    };
+
+    function parseConfig(text) {
+      const lines = text.split('\n');
+      const configLines = [];
+      const messageLines = [];
+      let configEnded = false;
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!configEnded && (line.startsWith('Hora:') || line.startsWith('Bateria:') || line.startsWith('Icone:') || line.startsWith('Nome:'))) {
+          configLines.push(line);
+        } else if (line.length > 0) {
+          configEnded = true;
+          messageLines.push(line);
+        }
+      }
+
+      // Parse config
+      configLines.forEach(line => {
+        if (line.startsWith('Hora:')) {
+          config.hora = line.substring(5).trim();
+        } else if (line.startsWith('Bateria:')) {
+          config.bateria = line.substring(8).trim();
+        } else if (line.startsWith('Icone:')) {
+          config.icone = line.substring(6).trim();
+        } else if (line.startsWith('Nome:')) {
+          config.nome = line.substring(5).trim();
+        }
+      });
+
+      return messageLines.join('\n');
+    }
+
+    function parseConversation(text) {
+      try {
+        const messageText = parseConfig(text);
+        const lines = messageText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        const messages = [];
+        let currentMessage = null;
+
+        const timeRegex = /^([0-2]\d:[0-5]\d)$/;
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          if (timeRegex.test(line)) {
+            if (currentMessage) {
+              messages.push(currentMessage);
+            }
+            currentMessage = { time: line, sender: '', text: '', type: 'text', buttons: [], poll: null, image: null };
+          } else if (currentMessage && currentMessage.sender === '') {
+            const sepIndex = line.indexOf(':');
+            if (sepIndex !== -1) {
+              currentMessage.sender = line.substring(0, sepIndex).trim();
+              currentMessage.text = line.substring(sepIndex + 1).trim();
+            } else {
+              currentMessage.text = line;
+            }
+          } else if (currentMessage) {
+            // Check for special content
+            if (line.startsWith('✅') || line.startsWith('❌')) {
+              // Button options
+              const buttons = line.split(/(?=✅)|(?=❌)/).filter(b => b.trim());
+              currentMessage.buttons = buttons.map(b => ({
+                text: b.replace(/✅|❌/, '').trim(),
+                emoji: b.includes('✅') ? '✅' : '❌',
+                selected: false
+              }));
+            } else if (line.startsWith('Enquete:')) {
+              // Poll
+              currentMessage.poll = {
+                title: line.substring(8).trim(),
+                options: []
+              };
+            } else if (currentMessage.poll && /^\d+\s*-/.test(line)) {
+              // Poll option
+              currentMessage.poll.options.push({
+                text: line,
+                selected: false
+              });
+            } else if (line.startsWith('Botoes:')) {
+              // Custom buttons section
+              currentMessage.type = 'buttons';
+            } else if (line.startsWith('http') && (line.includes('.jpg') || line.includes('.png') || line.includes('.jpeg') || line.includes('.gif'))) {
+              // Image URL
+              currentMessage.image = line;
+            } else {
+              // Regular text continuation
+              currentMessage.text += '\n' + line;
+            }
+          }
+        }
+        
+        if (currentMessage) {
+          messages.push(currentMessage);
+        }
+        
+        return messages;
+      } catch (error) {
+        console.error('Error parsing conversation:', error);
+        return [];
+      }
+    }
+
+    function renderChat(messages) {
+      const container = document.getElementById('chatContainer');
+      
+      // Update UI with config
+      document.querySelector('.time').textContent = config.hora;
+      document.querySelector('.battery').textContent = config.bateria;
+      document.getElementById('contactName').textContent = config.nome;
+      
+      if (config.icone) {
+        document.getElementById('contactAvatar').style.backgroundImage = `url(${config.icone})`;
+      }
+      
+      container.innerHTML = '<div class="text-gray-500 text-center py-8">Processando mensagens...</div>';
+      
+      setTimeout(() => {
+        try {
+          container.innerHTML = '';
+
+          if (messages.length === 0) {
+            container.innerHTML = '<div class="text-gray-500 text-center py-8">Nenhuma mensagem encontrada. Verifique o formato do texto.</div>';
+            return;
+          }
+
+          const senders = [...new Set(messages.map(m => m.sender))];
+          const senderAlignment = {};
+          senders.forEach((sender, index) => {
+            senderAlignment[sender] = index === 0 ? 'received' : 'sent';
+          });
+
+          messages.forEach((msg, idx) => {
+            const type = senderAlignment[msg.sender];
+            const delay = idx * 100;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message mb-4 flex flex-col ${type === 'sent' ? 'items-end' : 'items-start'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble ${type} relative`;
+
+            // Add image if present
+            if (msg.image) {
+              const img = document.createElement('img');
+              img.src = msg.image;
+              img.className = 'message-image';
+              img.onerror = () => {
+                img.style.display = 'none';
+              };
+              bubble.appendChild(img);
+            }
+
+            // Add text
+            if (msg.text) {
+              const textSpan = document.createElement('span');
+              textSpan.className = 'block whitespace-pre-wrap';
+              textSpan.textContent = msg.text;
+              bubble.appendChild(textSpan);
+            }
+
+            // Add poll
+            if (msg.poll) {
+              const pollDiv = document.createElement('div');
+              pollDiv.className = 'mt-2';
+              
+              const pollTitle = document.createElement('div');
+              pollTitle.className = 'font-semibold mb-2';
+              pollTitle.textContent = msg.poll.title;
+              pollDiv.appendChild(pollTitle);
+
+              msg.poll.options.forEach((option, optIdx) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'poll-option cursor-pointer';
+                optionDiv.textContent = option.text;
+                optionDiv.onclick = () => {
+                  // Toggle selection
+                  msg.poll.options.forEach(opt => opt.selected = false);
+                  option.selected = true;
+                  optionDiv.parentElement.querySelectorAll('.poll-option').forEach(el => el.classList.remove('selected'));
+                  optionDiv.classList.add('selected');
+                };
+                pollDiv.appendChild(optionDiv);
+              });
+              
+              bubble.appendChild(pollDiv);
+            }
+
+            // Add buttons
+            if (msg.buttons.length > 0) {
+              const buttonsDiv = document.createElement('div');
+              buttonsDiv.className = 'message-buttons';
+              
+              msg.buttons.forEach((button, btnIdx) => {
+                const btn = document.createElement('button');
+                btn.className = 'message-button';
+                btn.textContent = `${button.emoji} ${button.text}`;
+                btn.onclick = () => {
+                  // Toggle selection
+                  msg.buttons.forEach(b => b.selected = false);
+                  button.selected = true;
+                  buttonsDiv.querySelectorAll('.message-button').forEach(el => el.classList.remove('selected'));
+                  btn.classList.add('selected');
+                };
+                buttonsDiv.appendChild(btn);
+              });
+              
+              bubble.appendChild(buttonsDiv);
+            }
+
+            // Add time and read receipt
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'text-[11px] ml-2 text-gray-500 inline-block mt-1';
+            timeSpan.textContent = msg.time;
+            
+            if (type === 'sent') {
+              const receipt = document.createElement('span');
+              receipt.className = 'read-receipt';
+              timeSpan.appendChild(receipt);
+            }
+            
+            bubble.appendChild(timeSpan);
+            msgDiv.appendChild(bubble);
+            container.appendChild(msgDiv);
+
+            setTimeout(() => msgDiv.classList.add('fade-in'), delay);
+          });
+
+          setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+          }, messages.length * 100);
+        } catch (error) {
+          console.error('Error rendering chat:', error);
+          container.innerHTML = '<div class="text-red-500 text-center py-8">Erro ao renderizar as mensagens. Por favor, tente novamente.</div>';
+        }
+      }, 100);
+    }
+
+    function generateChat() {
+      const inputText = document.getElementById('inputText').value;
+      
+      if (!inputText.trim()) {
+        alert('Por favor, cole o texto da conversa antes de gerar.');
+        return;
+      }
+
+      const button = document.getElementById('generateButton');
+      button.disabled = true;
+      button.classList.add('opacity-50', 'cursor-not-allowed');
+      button.textContent = 'Processando...';
+
+      try {
+        const messages = parseConversation(inputText);
+        renderChat(messages);
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Ocorreu um erro ao processar a conversa. Por favor, verifique o formato do texto.');
+      } finally {
+        setTimeout(() => {
+          button.disabled = false;
+          button.classList.remove('opacity-50', 'cursor-not-allowed');
+          button.textContent = 'Gerar Conversa';
+        }, 1000);
+      }
+    }
+
+    // Add click handler
+    document.getElementById('generateButton').addEventListener('click', generateChat);
+  </script>
+</body>
+</html>
